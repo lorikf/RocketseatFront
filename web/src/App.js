@@ -1,36 +1,119 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+import api from './services/api';
 
 import './app.css'
 import './global.css'
 import './sidebar.css'
 import './main.css'
 
+import DevItem from './components/DevItem'
+
+
+
 
 function App() {
+  const [ devs, setDevs] = useState([])
+  
+  const [github_username, setGithubUsername] = useState('')
+  const [techs, setTechs] = useState('')
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        setLatitude(latitude)
+        setLongitude(longitude);
+      },
+      (err) => {
+        console.log(err)
+      },
+      {
+        timeout: 20000,
+      }
+    )
+  }, [])
+
+  useEffect(() => {
+    async function loadDevs() {
+      const response = await api.get('/devs')
+
+      setDevs(response.data)
+    }
+
+    loadDevs();
+  }, []);
+
+  async function handleAddDev(e) {
+    e.preventDefault()
+
+    const response = await api.post('/devs', {
+    github_username,
+    techs,
+    latitude,
+    longitude,
+    })
+    
+    setGithubUsername('')
+    setTechs('')
+
+    setDevs([...devs, response.data]);
+
+  }
+
   return (
     <div id="app">
       <aside>
         <strong> Cadastrar</strong>
-        <form>
-          <div class="input-block">
+        <form onSubmit={handleAddDev}>
+          <div className="input-block">
             <label htmlFor="github_username"> Usuário do Github</label>
-            <input name="github_username" id="username_github" required />
+            <input 
+            name="github_username" 
+            id="username_github" 
+            required
+            value={github_username}
+            onChange ={e => setGithubUsername(e.target.value)}
+            />
           </div>
 
-          <div class="input-block">
+          <div className="input-block">
             <label htmlFor="techs">Tecnologias</label>
-            <input name="techs" id="techs" required />
+            <input 
+            name="techs" 
+            id="techs" 
+            required
+            value={techs}
+            onChange ={e => setTechs(e.target.value)} 
+            />
           </div>
 
           <div className="input-group">
-            <div class="input-block">
+            <div className="input-block">
               <label htmlFor="latitude"> latitude</label>
-              <input name="latitude" id="latitude" required />
+              <input 
+              type="number" 
+              name="latitude" 
+              id="latitude" 
+              required 
+              value={latitude}
+              onChange={e => setLatitude(e.target.value)}
+              />
             </div>
 
-            <div class="input-block">
+            <div className="input-block">
               <label htmlFor="longitude"> longitude</label>
-              <input name="longitude" id="longitude" required />
+              <input 
+              type="number" 
+              name="longitude" 
+              id="longitude" 
+              required 
+              value={longitude}
+              onChange={e => setLongitude(e.target.value)}
+              />
             </div>
           </div>
           <button type="submit">salvar</button>
@@ -38,19 +121,10 @@ function App() {
       </aside>
       <main>
         <ul>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars3.githubusercontent.com/u/35586969?s=400&u=4fc3daae73936eaf9c55896c60c96e1d9ba6f9a3&v=4" alt="dies" />
-              <div className="user-info">
-                <strong>Diego e</strong>
-                <span> REACT, node</span>
-              </div>
-            </header>
-            <p>dfadfsad</p>
-            <a href="https://github.com/lorikf">acessar perfil</a>
-          </li>
+          {devs.map(dev => (
+            <DevItem key={dev._id} dev={dev}/>
+          ))}
         </ul>
-
       </main>
     </div>
   )
